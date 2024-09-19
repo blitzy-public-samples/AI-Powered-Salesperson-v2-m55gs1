@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # Frontend service
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    environment:
+      - REACT_APP_API_URL=http://backend:3000
+
+  # Backend service
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+      - ai_service
+    environment:
+      - DATABASE_URL=postgres://user:password@postgres:5432/db
+      - REDIS_URL=redis://redis:6379
+      - AI_SERVICE_URL=http://ai_service:5000
+
+  # AI service
+  ai_service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ai
+    ports:
+      - "5000:5000"
+    environment:
+      - MODEL_PATH=/app/models
+    volumes:
+      - ./models:/app/models
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # Redis cache
+  redis:
+    image: redis:6
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:
+    driver: local
